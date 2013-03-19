@@ -1,11 +1,11 @@
 {
   "name": "genome-parser",
   "description": "Simple DNA parser library",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "E.Naumenko",
   "repository": {
     "type" : "git",
-    "url": "https://github.com/EugeneN/DNA.js"
+    "url": "https://github.com/EugeneN/genome-parser"
   },
   "scripts": {"postinstall": "cake build"},
   "engine" : [ "node >=0.1.102" ],
