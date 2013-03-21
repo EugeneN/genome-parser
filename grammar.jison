@@ -2,23 +2,27 @@
 %%
 
 \s+                    /* skip whitespace */
-[0-9]+                 return 'NUMBER'
+[0-9]+"."[0-9]*        return 'FLOAT'
+[0-9]+                 return 'INT'
 \"(\\.|[^\\"]*?)\"     return 'STRING'
 "NaN"                  return 'NAN'
 "null"                 return 'NULL'
-[A-Za-z_][A-Za-z0-9_]* return 'IDENTIFIER'
+":(?=[a-z0-9]+?)"      return 'KEYWORD'
+":"                    return 'ESEP'
+[A-Za-z_\-<>+*=$#%^&!?][A-Za-z0-9_\-<>+*=$#%^&!?]* return 'IDENTIFIER'
 \"                     return 'DBLQUOTE'
+\'                     return 'QUOTE'
 "("                    return '('
 ")"                    return ')'
 "["                    return '['
 "]"                    return ']'
 "^"                    return '^'
-":"                    return ':'
 "@"                    return '@'
 "|"                    return '|'
 ","                    return ','
 "/"                    return '/'
 ";"                    return ';'
+":"                    return ':'
 <<EOF>>                return 'EOF'
 .                      return 'INVALID'
 
@@ -26,7 +30,7 @@
 
 /* operator associations and precedence */
 %left ',' '|' ';' '/'
-%right ':'
+%right ESEP
 
 %start program
 
@@ -36,7 +40,7 @@ program
     :
     | text EOF
         {{
-           //console.log($1);
+           console.log($1);
            return $1;
         }}
     ;
@@ -57,7 +61,7 @@ statement
     ;
 
 event_binding_def
-    : events ':' handlers
+    : events ESEP handlers
         %{ $$ = {events: $1, handlers: $3}; %}
     ;
 
@@ -76,13 +80,13 @@ event_expression
     ;
 
 event
-    : symbol
+    : IDENTIFIER
         %{ $$ = {ns: undefined, event: $1, scope: undefined}; %}
-    | symbol '/' symbol
+    | IDENTIFIER '/' IDENTIFIER
         %{ $$ = {ns: $1, event: $2, scope: undefined}; %}
-    | symbol '@' symbol
+    | IDENTIFIER '@' IDENTIFIER
         %{ $$ = {ns: undefined, event: $1, scope: $3}; %}
-    | symbol '/' symbol '@' symbol
+    | IDENTIFIER '/' IDENTIFIER '@' IDENTIFIER
         %{ $$ = {ns: $1, event: $3, scope: $5}; %}
     ;
 
@@ -94,57 +98,93 @@ handlers
     ;
 
 handler
-    : handler_expression
+    : block
+        {{ $$ = {type: 'handler', seq: [$1]}; }}
+    | handler '|' block
+        {{ $$ = {type: 'handler', seq: $1.seq.concat([$3])}; }}
+    ;
+
+block
+    : value
         {{ $$ = $1; }}
-    | handler '|' handler_expression
-        {{ $$ = Array.isArray($1) ? ($1).concat([$3]) : [$1, $3]; }}
+    | fn
+        {{ $$ = $1; }}
+    | fn values
+        {{ $$ = { type: "partial", fn: $1, args: $2}; }}
     ;
 
-handler_expression
-    : partially_applied_handler
+values
+    : value
         {{ $$ = [$1]; }}
-    | handler_expression partially_applied_handler
-        {{ $$ = Array.isArray($1) ? ($1).concat([$2]) : [$1, $2]; }}
+    | values value
+        {{ $$ = $1.concat([$2]); }}
     ;
 
-partially_applied_handler
-    : symbol
-        {{ $$ = {ns: undefined, method: $1, scope: undefined}; }}
-    | symbol '/' symbol
-        {{ $$ = {ns: $1, method: $3, scope: undefined}; }}
-    | symbol '@' symbol
-        {{ $$ = {ns: undefined, method: $1, scope: $3}; }}
-    | symbol '/' symbol '@' symbol
-        {{ $$ = {ns: $1, method: $3, scope: $5}; }}
+value
+    : primitive
+        {{ $$ = $1; }}
+    | complex
+        {{ $$ = $1; }}
+    | expr
+        {{ $$ = $1; }}
     ;
 
-symbol
+expr
+    : '(' handler ')'
+        {{ $$ = {type: 'nested', value: $2}; }}
+    | QUOTE '(' handler ')'
+        {{ $$ = {type: 'quoted-nested', value: $3}; }}
+    ;
+
+
+primitive
     : NAN
         {{ $$ = { type: "NaN", value: NaN }; }}
     | NULL
         {{ $$ = { type: "null", value: null }; }}
-    | IDENTIFIER
-        {{ $$ = { type: "symbol", name: $1 }; }}
-    | NUMBER
-        {{ $$ = { type: "number", value: parseInt($1, 10)}; }}
+    | KEYWORD
+        {{ $$ = { type: "keyword", value: $1 }; }}
     | STRING
         {{ $$ = { type: "string", value: ($1).match('\"(\\.|[^\\"]*?)\"')[1] }; }}
-    | '[' vec_items_list ']'
+    | number
+        {{ $$ = $1; }}
+    ;
+
+number
+    : INT
+        {{ $$ = { type: "integer", value: parseInt($1, 10)}; }}
+    | FLOAT
+        {{ $$ = { type: "float", value: parseFloat($1, 10)}; }}
+    ;
+
+complex
+    : '[' vector ']'
         {{ $$ = { type: "vector", value: $2}; }}
     ;
 
-vec_items_list
+vector
     :
         {{ $$ = []; }}
-    | vec_item vec_items_list
-        {{ $$ = $1.concat($2) }}
+    | vector vec_item
+        {{ $$ = $1.concat([$2]); }}
     ;
 
 vec_item
-    : partially_applied_handler
-        {{ $$ = [$1] }}
-    | symbol
-        {{ $$ = [$1]; }}
+    : primitive
+        {{ $$ = $1; }}
+    | complex
+        {{ $$ = $1; }}
+    | expr
+        {{ $$ = $1; }}
     ;
 
-
+fn
+    : IDENTIFIER
+        {{ $$ = {type: 'fn', ns: undefined, name: $1, scope: undefined}; }}
+    | IDENTIFIER '/' IDENTIFIER
+        {{ $$ = {type: 'fn', ns: $1, name: $3, scope: undefined}; }}
+    | IDENTIFIER '@' IDENTIFIER
+        {{ $$ = {type: 'fn', ns: undefined, name: $1, scope: $3}; }}
+    | IDENTIFIER '/' IDENTIFIER '@' IDENTIFIER
+        {{ $$ = {type: 'fn', ns: $1, name: $3, scope: $5}; }}
+    ;

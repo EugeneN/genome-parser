@@ -15,7 +15,15 @@ task 'cafebuild', 'build with cafe', (cb) ->
     ret_result =
         {filename: 'index.coffee', source: dna_parser.generate(), type: 'commonjs'}
 
-    process.send JSON.stringify ret_result
+    a = JSON.stringify ret_result
+    process.send a
+
+    setTimeout(
+        ->
+            process.exit 0
+
+        9500
+    )
 
 
 task 'build', 'build with npm', (cb) ->
