@@ -74,20 +74,20 @@ events
 
 event_expression
     : event
-        {{ $$ = [$1]; }}
-    | event_expression event
-        {{ $$ = Array.isArray($1) ? ($1).concat([$2]) : [$1, $2]; }}
+        {{ $$ = $1; }}
+    | event values
+        {{ $$ = {type: 'partial-event', event: $1, args: $2}; }}
     ;
 
 event
     : IDENTIFIER
-        %{ $$ = {ns: undefined, event: $1, scope: undefined}; %}
+        %{ $$ = {ns: undefined, name: $1, scope: undefined, type: 'event'}; %}
     | IDENTIFIER '/' IDENTIFIER
-        %{ $$ = {ns: $1, event: $2, scope: undefined}; %}
+        %{ $$ = {ns: $1, name: $2, scope: undefined, type: 'event'}; %}
     | IDENTIFIER '@' IDENTIFIER
-        %{ $$ = {ns: undefined, event: $1, scope: $3}; %}
+        %{ $$ = {ns: undefined, name: $1, scope: $3, type: 'event'}; %}
     | IDENTIFIER '/' IDENTIFIER '@' IDENTIFIER
-        %{ $$ = {ns: $1, event: $3, scope: $5}; %}
+        %{ $$ = {ns: $1, name: $3, scope: $5, type: 'event'}; %}
     ;
 
 handlers
