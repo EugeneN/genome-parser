@@ -1,7 +1,7 @@
 {
   "name": "genome-parser",
   "description": "Simple DNA parser library",
-  "version": "0.0.82",
+  "version": "0.0.83",
   "author": "E.Naumenko",
   "repository": {
     "type" : "git",
