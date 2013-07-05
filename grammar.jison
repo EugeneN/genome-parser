@@ -153,7 +153,7 @@ primitive
     | BQ
         {{ $$ = { type: "bq", value: $1.substr(1, $1.length-2) } }}
     | RE
-        {{ $$ = { type: "re", value: new RegExp($1) } }}
+        {{ $$ = { type: "re", value: new RegExp($1.substr(1, $1.length-2)) } }}
     | number
         {{ $$ = $1; }}
     ;
