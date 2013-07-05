@@ -4,10 +4,14 @@
 \s+                    /* skip whitespace */
 [0-9]+"."[0-9]*        return 'FLOAT'
 [0-9]+                 return 'INT'
+
+\`.*\`                 return 'BQ' 
+\/(?:[^\/]|"\\/")*\/   return 'RE'
+
 \"(\\.|[^\\"]*?)\"     return 'STRING'
 "NaN"                  return 'NAN'
 "null"                 return 'NULL'
-":(?=[a-z0-9]+?)"      return 'KEYWORD'
+\:([a-z0-9]+)          return 'KEYWORD'
 ":"                    return 'ESEP'
 [A-Za-z_\-<>+*=$#%^&!?][A-Za-z0-9_\-<>+*=$#%^&!?]* return 'IDENTIFIER'
 \"                     return 'DBLQUOTE'
@@ -40,7 +44,7 @@ program
     :
     | text EOF
         {{
-           //console.log($1);
+           console.log($1);
            return $1;
         }}
     ;
@@ -146,6 +150,10 @@ primitive
         {{ $$ = { type: "keyword", value: $1 }; }}
     | STRING
         {{ $$ = { type: "string", value: ($1).match('\"(\\.|[^\\"]*?)\"')[1] }; }}
+    | BQ
+        {{ $$ = { type: "bq", value: $1.substr(1, $1.length-2) } }}
+    | RE
+        {{ $$ = { type: "re", value: new RegExp($1) } }}
     | number
         {{ $$ = $1; }}
     ;
