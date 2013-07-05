@@ -6,7 +6,6 @@
 [0-9]+                 return 'INT'
 
 \`.*\`                 return 'BQ' 
-\/(?:[^\/]|"\\/")*\/   return 'RE'
 
 \"(\\.|[^\\"]*?)\"     return 'STRING'
 "NaN"                  return 'NAN'
@@ -27,6 +26,7 @@
 "/"                    return '/'
 ";"                    return ';'
 ":"                    return ':'
+\/(?:[^\/]|"\\/")*\/   return 'RE'
 <<EOF>>                return 'EOF'
 .                      return 'INVALID'
 
