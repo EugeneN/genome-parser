@@ -10,7 +10,7 @@
   "scripts": {"postinstall": "cake build"},
   "engine" : [ "node >=0.1.102" ],
   "dependencies": {
-      "jison": "*"
+      "jison": "<0.4.14"
   },
   "main" : "./index.js"
 }
